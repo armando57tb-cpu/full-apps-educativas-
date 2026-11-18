@@ -1,0 +1,26 @@
+{
+  "id": "/",
+  "name": "Yachay & Raíces - Idiomas, Ajedrez y Leyendas",
+  "short_name": "Yachay",
+  "description": "Plataforma educativa para idiomas ancestrales (Kichwa, Shuar) e internacionales, ajedrez con IA/PvP y leyendas ilustradas.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#0f172a",
+  "background_color": "#0f172a",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "64x64",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

@@ -1,0 +1,246 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser(userId) {
+      return isSignedIn()
+        && request.auth.uid == userId
+        && request.auth.token.email_verified == true;
+    }
+
+    function isValidLanguageCode(code) {
+      return code in ['kichwa', 'shuar', 'achuar', 'tsafiki', 'chapalaa', 'awapit', 'en', 'fr'];
+    }
+
+    function isValidUserProfile(data, userId) {
+      return data.keys().hasAll([
+          'uid',
+          'displayName',
+          'streakDays',
+          'xp',
+          'chakanas',
+          'currentLanguage',
+          'isPro',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'uid',
+          'displayName',
+          'accountCategory',
+          'accountLabel',
+          'streakDays',
+          'xp',
+          'chakanas',
+          'currentLanguage',
+          'isPro',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.uid == userId
+        && isValidId(data.uid)
+        && data.displayName is string
+        && data.displayName.size() >= 1
+        && data.displayName.size() <= 100
+        && (!data.keys().hasAny(['accountCategory']) || data.accountCategory in ['primary', 'secondary', 'custom'])
+        && (!data.keys().hasAny(['accountLabel']) || (data.accountLabel is string && data.accountLabel.size() <= 60))
+        && data.streakDays is number && data.streakDays >= 0 && data.streakDays <= 10000
+        && data.xp is number && data.xp >= 0 && data.xp <= 10000000
+        && data.chakanas is number && data.chakanas >= 0 && data.chakanas <= 10000000
+        && isValidLanguageCode(data.currentLanguage)
+        && data.isPro is bool
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidBoundedStringArray(arr, maxLen) {
+      return arr is list
+        && arr.size() <= maxLen
+        && (arr.size() == 0 || (arr[0] is string && arr[0].size() <= 128));
+    }
+
+    function isValidCloudState(data, userId) {
+      return data.keys().hasAll([
+          'ownerUid',
+          'email',
+          'completedLessonIds',
+          'savedMythIds',
+          'adUnlockedMythIds',
+          'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'ownerUid',
+          'email',
+          'username',
+          'completedLessonIds',
+          'savedMythIds',
+          'adUnlockedMythIds',
+          'languageLevels',
+          'chessStats',
+          'dailyXpHistory',
+          'updatedAt'
+        ])
+        && data.ownerUid == userId
+        && isValidId(data.ownerUid)
+        && data.email is string && data.email.size() >= 3 && data.email.size() <= 160
+        && (!data.keys().hasAny(['username']) || (data.username is string && data.username.size() <= 80))
+        && isValidBoundedStringArray(data.completedLessonIds, 200)
+        && isValidBoundedStringArray(data.savedMythIds, 100)
+        && isValidBoundedStringArray(data.adUnlockedMythIds, 100)
+        && (!data.keys().hasAny(['languageLevels']) || data.languageLevels is map)
+        && (!data.keys().hasAny(['dailyXpHistory']) || (data.dailyXpHistory is map && data.dailyXpHistory.size() <= 60))
+        && (!data.keys().hasAny(['chessStats']) || (
+          data.chessStats is map
+          && data.chessStats.keys().hasOnly(['elo', 'wins', 'draws', 'losses'])
+        ))
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidCertificate(data, userId, certId) {
+      return data.keys().hasAll([
+          'id',
+          'ownerUid',
+          'studentName',
+          'language',
+          'languageCode',
+          'level',
+          'issueDate',
+          'verificationCode',
+          'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'id',
+          'ownerUid',
+          'studentName',
+          'language',
+          'languageCode',
+          'level',
+          'issueDate',
+          'verificationCode',
+          'grade',
+          'accreditedBy',
+          'createdAt'
+        ])
+        && data.id == certId
+        && isValidId(data.id)
+        && data.ownerUid == userId
+        && isValidId(data.ownerUid)
+        && data.studentName is string && data.studentName.size() >= 1 && data.studentName.size() <= 120
+        && data.language is string && data.language.size() >= 1 && data.language.size() <= 100
+        && isValidLanguageCode(data.languageCode)
+        && data.level is string && data.level.size() >= 1 && data.level.size() <= 80
+        && data.issueDate is string && data.issueDate.size() <= 40
+        && data.verificationCode is string && data.verificationCode.size() <= 64
+        && (!data.keys().hasAny(['grade']) || (data.grade is string && data.grade.size() <= 40))
+        && (!data.keys().hasAny(['accreditedBy']) || (data.accreditedBy is string && data.accreditedBy.size() <= 120))
+        && data.createdAt is timestamp;
+    }
+
+    // Connection test doc (read-only ping)
+    match /test/connection {
+      allow get: if isSignedIn();
+    }
+
+    // User root document (strict owner-only access)
+    match /users/{userId} {
+      allow get: if isValidId(userId) && isVerifiedUser(userId);
+      allow list: if isSignedIn() && resource.data.uid == request.auth.uid;
+
+      allow create: if isValidId(userId)
+        && isVerifiedUser(userId)
+        && isValidUserProfile(incoming(), userId)
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isValidId(userId)
+        && isVerifiedUser(userId)
+        && isValidUserProfile(incoming(), userId)
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'displayName',
+          'accountCategory',
+          'accountLabel',
+          'streakDays',
+          'xp',
+          'chakanas',
+          'currentLanguage',
+          'isPro',
+          'updatedAt'
+        ]);
+
+      allow delete: if false;
+
+      // Private cloud state (PII + detailed learning/ad-unlock sync)
+      match /private/{docId} {
+        allow get: if isValidId(userId) && isValidId(docId) && isVerifiedUser(userId);
+        allow list: if isSignedIn() && resource.data.ownerUid == request.auth.uid;
+
+        allow create: if isValidId(userId)
+          && isValidId(docId)
+          && isVerifiedUser(userId)
+          && exists(/databases/$(database)/documents/users/$(userId))
+          && isValidCloudState(incoming(), userId)
+          && incoming().updatedAt == request.time;
+
+        allow update: if isValidId(userId)
+          && isValidId(docId)
+          && isVerifiedUser(userId)
+          && exists(/databases/$(database)/documents/users/$(userId))
+          && isValidCloudState(incoming(), userId)
+          && incoming().ownerUid == existing().ownerUid
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'email',
+            'username',
+            'completedLessonIds',
+            'savedMythIds',
+            'adUnlockedMythIds',
+            'languageLevels',
+            'chessStats',
+            'dailyXpHistory',
+            'updatedAt'
+          ]);
+
+        allow delete: if false;
+      }
+
+      // Earned Certificates subcollection
+      match /certificates/{certId} {
+        allow get: if isValidId(userId) && isValidId(certId) && isVerifiedUser(userId);
+        allow list: if isSignedIn() && resource.data.ownerUid == request.auth.uid;
+
+        allow create: if isValidId(userId)
+          && isValidId(certId)
+          && isVerifiedUser(userId)
+          && exists(/databases/$(database)/documents/users/$(userId))
+          && isValidCertificate(incoming(), userId, certId)
+          && incoming().createdAt == request.time;
+
+        allow update: if false;
+        allow delete: if false;
+      }
+    }
+  }
+}

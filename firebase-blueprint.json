@@ -1,0 +1,195 @@
+{
+  "entities": {
+    "UserProfileDoc": {
+      "title": "UserProfileDoc",
+      "description": "Perfil de aprendizaje gamificado del usuario sincronizado en la nube.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "accountCategory": {
+          "type": "string",
+          "enum": ["primary", "secondary", "custom"]
+        },
+        "accountLabel": {
+          "type": "string",
+          "maxLength": 60
+        },
+        "streakDays": {
+          "type": "number"
+        },
+        "xp": {
+          "type": "number"
+        },
+        "chakanas": {
+          "type": "number"
+        },
+        "currentLanguage": {
+          "type": "string",
+          "enum": ["kichwa", "shuar", "achuar", "tsafiki", "chapalaa", "awapit", "en", "fr"]
+        },
+        "isPro": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "uid",
+        "displayName",
+        "streakDays",
+        "xp",
+        "chakanas",
+        "currentLanguage",
+        "isPro",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "CloudStateDoc": {
+      "title": "CloudStateDoc",
+      "description": "Estado privado completo en la nube: correo, lecciones completadas, leyendas guardadas, videos desbloqueados con anuncios, ajedrez y niveles.",
+      "type": "object",
+      "properties": {
+        "ownerUid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "username": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "completedLessonIds": {
+          "type": "array"
+        },
+        "savedMythIds": {
+          "type": "array"
+        },
+        "adUnlockedMythIds": {
+          "type": "array"
+        },
+        "languageLevels": {
+          "type": "object"
+        },
+        "chessStats": {
+          "type": "object"
+        },
+        "dailyXpHistory": {
+          "type": "object"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "ownerUid",
+        "email",
+        "completedLessonIds",
+        "savedMythIds",
+        "adUnlockedMythIds",
+        "updatedAt"
+      ]
+    },
+    "CertificateDoc": {
+      "title": "CertificateDoc",
+      "description": "Certificado digital emitido al usuario con código de verificación.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerUid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "studentName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "language": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "languageCode": {
+          "type": "string",
+          "enum": ["kichwa", "shuar", "achuar", "tsafiki", "chapalaa", "awapit", "en", "fr"]
+        },
+        "level": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "issueDate": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "verificationCode": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "grade": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "accreditedBy": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "ownerUid",
+        "studentName",
+        "language",
+        "languageCode",
+        "level",
+        "issueDate",
+        "verificationCode",
+        "createdAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfileDoc" },
+      "description": "Documento raíz del perfil del estudiante autenticado."
+    },
+    "/users/{userId}/private/{docId}": {
+      "schema": { "$ref": "#/entities/CloudStateDoc" },
+      "description": "Almacenamiento privado en nube de PII y progreso detallado por cuenta."
+    },
+    "/users/{userId}/certificates/{certId}": {
+      "schema": { "$ref": "#/entities/CertificateDoc" },
+      "description": "Certificados oficiales emitidos por el usuario."
+    }
+  }
+}

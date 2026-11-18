@@ -1,0 +1,6 @@
+{
+  "name": "Yachay & Raíces - Idiomas Ancestrales, Ajedrez y Leyendas",
+  "description": "Plataforma educativa móvil de microaprendizaje para idiomas nativos de Ecuador (Kichwa, Shuar) e internacionales, ajedrez con IA/PvP, mitos ilustrados y certificación digital.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
